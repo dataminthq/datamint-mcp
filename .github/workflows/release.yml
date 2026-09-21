@@ -1,0 +1,158 @@
+name: Release & Publish
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        type: choice
+        description: "Semver release increment"
+        required: true
+        default: "patch"
+        options:
+          - patch
+          - minor
+          - major
+          - prepatch
+          - preminor
+          - premajor
+      dry_run:
+        type: boolean
+        description: "Dry run (test build and package without publishing to npm or pushing tag)"
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
+jobs:
+  validate:
+    name: Validate Build & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript typecheck
+        run: pnpm run typecheck
+
+      - name: Build TypeScript bundle
+        run: pnpm run build
+
+      - name: Run test suite
+        run: pnpm test
+
+  release:
+    name: Release & Publish Package
+    needs: [validate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Configure Git Author
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Handle Version Bump (workflow_dispatch)
+        id: bump
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Bump package.json version
+          NEW_VERSION=$(npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version)
+          # Clean version string (remove leading v)
+          VERSION_NUM=${NEW_VERSION#v}
+          echo "Bumping to version: $VERSION_NUM (tag: $NEW_VERSION)"
+          echo "version=$VERSION_NUM" >> $GITHUB_OUTPUT
+          echo "tag=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          if [ "${{ github.event.inputs.dry_run }}" != "true" ]; then
+            git add package.json
+            git commit -m "chore(release): $NEW_VERSION [skip ci]"
+            git tag "$NEW_VERSION"
+            git push origin main
+            git push origin "$NEW_VERSION"
+          else
+            echo "Dry run enabled: skipping git push and tag creation."
+          fi
+
+      - name: Set Release Tag
+        id: tag_info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ steps.bump.outputs.tag }}" >> $GITHUB_OUTPUT
+            echo "version=${{ steps.bump.outputs.version }}" >> $GITHUB_OUTPUT
+          else
+            TAG="${{ github.ref_name }}"
+            VERSION="${TAG#v}"
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Production Distribution
+        run: pnpm run build
+
+      - name: Publish to npm (Dry Run)
+        if: github.event.inputs.dry_run == 'true' || env.NODE_AUTH_TOKEN == ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "Running pnpm publish in dry-run mode..."
+          pnpm publish --dry-run --no-git-checks --access public
+
+      - name: Publish to npm (Production)
+        if: github.event.inputs.dry_run != 'true' && env.NODE_AUTH_TOKEN != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "Publishing version ${{ steps.tag_info.outputs.version }} to npm..."
+          pnpm publish --no-git-checks --access public --provenance
+
+      - name: Create GitHub Release
+        if: github.event.inputs.dry_run != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_info.outputs.tag }}
+          name: Release ${{ steps.tag_info.outputs.tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(steps.tag_info.outputs.tag, '-pre') || contains(steps.tag_info.outputs.tag, '-beta') || contains(steps.tag_info.outputs.tag, '-alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

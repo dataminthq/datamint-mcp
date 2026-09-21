@@ -18,7 +18,13 @@
     "dev": "tsc -w",
     "start": "node bin/datamint-mcp.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --test dist/**/*.test.js"
+    "test": "node --test dist/**/*.test.js",
+    "preversion": "pnpm run typecheck && pnpm test",
+    "version": "pnpm run build",
+    "release:patch": "npm version patch",
+    "release:minor": "npm version minor",
+    "release:major": "npm version major",
+    "release:dry-run": "pnpm run build && pnpm test && pnpm publish --dry-run --no-git-checks --access public"
   },
   "keywords": [
     "mcp",

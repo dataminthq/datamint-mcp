@@ -1,0 +1,7 @@
+dist/tests/
+src/tests/
+*.test.*
+.github/
+Dockerfile
+.env*
+tsconfig.json

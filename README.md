@@ -241,6 +241,39 @@ pnpm test
 pnpm run typecheck
 ```
 
+## CI/CD & Automated Releases
+
+This repository includes continuous integration and automated release workflows via GitHub Actions:
+
+- **`.github/workflows/ci.yml`**:
+  - Automatically runs on every push and pull request to `main`.
+  - Executes strict TypeScript typechecks (`pnpm run typecheck`).
+  - Tests across a matrix of Node.js versions (**18.x, 20.x, 22.x**).
+  - Verifies CLI binary execution and stdio JSON-RPC handshake.
+  - Tests Docker container build.
+
+- **`.github/workflows/release.yml`**:
+  - Automatically triggers when a semver tag is pushed (e.g. `v0.1.1`).
+  - Can be manually triggered from the **Actions** tab in GitHub (`workflow_dispatch`) with automatic version incrementing (`patch`, `minor`, `major`).
+  - Generates GitHub Release notes automatically.
+  - Publishes the package to the npm registry with npm provenance.
+
+### Local Versioning & Release Commands
+
+```bash
+# Bump patch version (0.1.0 -> 0.1.1), run typechecks & tests, and rebuild
+pnpm run release:patch
+
+# Bump minor version (0.1.0 -> 0.2.0)
+pnpm run release:minor
+
+# Bump major version (0.1.0 -> 1.0.0)
+pnpm run release:major
+
+# Test package release contents locally without publishing
+pnpm run release:dry-run
+```
+
 ---
 
 ## License
