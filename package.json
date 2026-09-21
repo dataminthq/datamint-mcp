@@ -1,0 +1,50 @@
+{
+  "name": "@datamint/mcp",
+  "version": "0.1.0",
+  "description": "Official Model Context Protocol (MCP) server for datamint.xyz — high-throughput web crawling, anti-bot bypass, LLM Markdown minting, and zero-code schema extraction.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "datamint-mcp": "./bin/datamint-mcp.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "start": "node bin/datamint-mcp.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test dist/**/*.test.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "datamint",
+    "web-scraping",
+    "crawler",
+    "stealth-browser",
+    "markdown-extraction",
+    "json-schema",
+    "ai-agents",
+    "claude-desktop",
+    "cursor"
+  ],
+  "author": "datamint.xyz",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

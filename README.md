@@ -1,0 +1,248 @@
+# @datamint/mcp — Official Datamint Model Context Protocol Server
+
+[![npm version](https://img.shields.io/npm/v/@datamint/mcp.svg)](https://www.npmjs.com/package/@datamint/mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
+
+The official **Model Context Protocol (MCP)** server for **[datamint.xyz](https://datamint.xyz)**.
+
+Connect any AI agent directly to Datamint's high-throughput web scraping and data extraction infrastructure. Turn bot-defended, dynamic websites into clean, deterministic LLM-optimized Markdown and schema-validated JSON without custom crawler boilerplate.
+
+---
+
+## Capabilities at a Glance
+
+- **⚡ Fast HTTP Fetch (1 credit)**: Sub-second static page extraction with BoringSSL JA4/TLS fingerprinting.
+- **🛡️ Stealth Armor (15 credits)**: Bypasses Cloudflare Under Attack Mode, Turnstile, and DataDome via residential proxy pools and browser fingerprint mutation.
+- **🌐 Dynamic Headless Fleet (5 credits)**: Hardened browser execution for client-side SPAs (React, Vue, Next.js).
+- **📋 Zero-Code Schema Extraction (+2 credits)**: Transform messy web pages directly into typed JSON matching any custom JSON Schema or registered templates (`ecommerce_item`, `article`, `job_posting`, etc.).
+- **🕷️ Asynchronous Deep Crawl**: Traverse domains with regex path filters (`path_include`, `path_exclude`), depth limits (0–10), deduplication, and progress monitoring.
+- **📸 Evidence & Provenance**: Optional screenshots and sanitized HTML snapshots.
+- **🔄 Dual Transport**: Native `stdio` for desktop agent clients (Claude Desktop, Cursor) and `sse` (Server-Sent Events) for hosted deployments (`mcp.datamint.xyz`).
+
+---
+
+## Quickstart
+
+### 1. Obtain an API Key
+Sign up at [datamint.xyz](https://datamint.xyz) and create an API key in your [Dashboard](https://datamint.xyz/dashboard/keys).
+- Production keys: `mint_live_...`
+- Sandbox keys: `mint_test_...` (metered for testing, never billed against live balance)
+
+### 2. Configure Your AI Client
+
+#### Claude Desktop
+
+Add Datamint to your `claude_desktop_config.json`:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "datamint": {
+      "command": "npx",
+      "args": ["-y", "@datamint/mcp"],
+      "env": {
+        "DATAMINT_API_KEY": "mint_live_YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+#### Cursor IDE
+
+Add to your project's `.cursor/mcp.json` (or User Settings):
+
+```json
+{
+  "mcpServers": {
+    "datamint": {
+      "command": "npx",
+      "args": ["-y", "@datamint/mcp"],
+      "env": {
+        "DATAMINT_API_KEY": "mint_live_YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+#### Windsurf, Zed, Claude Code, Cline, Roo Code
+
+```bash
+# Running directly via npx:
+DATAMINT_API_KEY=mint_live_xxx npx -y @datamint/mcp
+
+# Or installed globally:
+npm install -g @datamint/mcp
+datamint-mcp --api-key mint_live_xxx
+```
+
+---
+
+## Tools Reference
+
+### `datamint_mint`
+Synchronous single-page extraction into clean Markdown or structured JSON.
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `url` | `string` | **Yes** | Target web page URL (`http://` or `https://`). |
+| `js` | `boolean` | No | Render with headless browser before extracting (5 credits). |
+| `stealth` | `boolean` | No | Route through residential proxies with anti-bot bypass & CAPTCHA solving (15 credits). |
+| `schema` | `string \| object` | No | Registered schema name (`ecommerce_item`, `article`) or inline JSON Schema (+2 credits). |
+| `include_screenshot` | `boolean` | No | Include base64-encoded PNG screenshot as visual evidence. |
+| `include_html` | `boolean` | No | Include sanitized HTML DOM in response. |
+| `wait_for_selector` | `string` | No | CSS selector to wait for before extracting. |
+| `timeout` | `integer` | No | Extraction timeout in seconds. |
+| `no_cache` | `boolean` | No | Force fresh extraction and bypass cached responses. |
+
+**Example Agent Usage:**
+> "Extract the pricing and product details from `https://store.example.com/item/42` using `datamint_mint` with `js: true`."
+
+---
+
+### `datamint_extract`
+Zero-code schema extraction producing typed JSON strictly conforming to a schema.
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `url` | `string` | **Yes** | Target web page URL. |
+| `schema` | `string \| object` | **Yes** | Registered name (`ecommerce_item`, `article`, `job_posting`, `company_profile`) or custom JSON Schema object. |
+| `js` | `boolean` | No | Headless browser rendering (7 credits with schema). |
+| `stealth` | `boolean` | No | Stealth residential proxy routing (17 credits with schema). |
+| `wait_for_selector` | `string` | No | CSS selector to wait for. |
+| `no_cache` | `boolean` | No | Bypass response cache. |
+
+**Example Agent Usage:**
+> "Use `datamint_extract` to extract the job requirements and salary range from `https://careers.example.com/senior-engineer` using the `job_posting` schema."
+
+---
+
+### `datamint_crawl`
+Initiate an asynchronous deep crawl across a website or domain.
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `url` | `string` | **Yes** | Starting seed URL. |
+| `max_depth` | `integer` | No | Max hops from seed URL (0 to 10). Default: `1`. |
+| `max_pages` | `integer` | No | Max pages to crawl (1 to 1000). Default: `50`. |
+| `path_include` | `string` | No | Regex pattern for paths to follow (e.g. `^/docs/.*`). |
+| `path_exclude` | `string` | No | Regex pattern for paths to skip (e.g. `\.(pdf\|zip)$`). |
+| `stealth` | `boolean` | No | Route entire crawl through residential proxies. |
+| `schema` | `string \| object` | No | Schema to extract on every discovered page. |
+| `webhook_url` | `string` | No | Optional HTTPS webhook URL notified upon crawl completion. |
+
+---
+
+### `datamint_crawl_status`
+Poll progress and retrieve extracted pages from a crawl job.
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `job_id` | `string` | **Yes** | Crawl UUID returned by `datamint_crawl`. |
+| `include_pages` | `boolean` | No | Include page contents (default: `true`). |
+| `limit` | `integer` | No | Max pages to return in response (default: `20`). |
+
+---
+
+### `datamint_estimate_cost`
+Pre-flight calculation of credit cost and USD value before initiating work.
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `mode` | `"mint" \| "extract" \| "crawl"` | **Yes** | Workload operation type. |
+| `js` | `boolean` | No | Dynamic browser rendering enabled. |
+| `stealth` | `boolean` | No | Stealth residential routing enabled. |
+| `has_schema` | `boolean` | No | Schema extraction pass enabled. |
+| `pages` | `integer` | No | Estimated page count (for crawls). |
+
+---
+
+## Resources Reference
+
+Agents can read these resources directly using MCP resource requests:
+
+| Resource URI | Description |
+| :--- | :--- |
+| `datamint://schemas` | Catalog of all canonical registered schemas and required fields. |
+| `datamint://schemas/{name}` | Full JSON Schema definition for a registered schema (`ecommerce_item`, `article`, `job_posting`, `company_profile`, `real_estate_listing`, `faq`). |
+| `datamint://system/status` | Live health, worker count, queue depth, and proxy tier readiness. |
+| `datamint://crawls/{id}` | Direct resource view of a crawl job by UUID. |
+
+---
+
+## Prompts Reference
+
+Pre-configured agent workflows available via `prompts/get`:
+
+- **`research_target`**: Autonomous research template with automatic tier escalation (fast fetch $\to$ JS render $\to$ stealth bypass).
+- **`extract_structured_data`**: Guided schema extraction with pre-flight schema inspection.
+- **`crawl_knowledge_base`**: Multi-page documentation scraping workflow with cost estimation and status polling.
+
+---
+
+## Credit Unit Economics
+
+Datamint operates on a transparent Data Credits model: **$1.00 USD = 1,000 Credits** ($0.001 / credit).
+
+| Workload Tier | Credits / Page | Cost / 1k Pages | Best For |
+| :--- | :---: | :---: | :--- |
+| **Static Fast Fetch** | 1 credit | $1.00 | Static blogs, news, public documentation |
+| **Static + Schema** | 3 credits | $3.00 | Static pages requiring structured JSON |
+| **Dynamic Headless Render** | 5 credits | $5.00 | SPAs (React/Vue/Angular), hydrated DOMs |
+| **Dynamic + Schema** | 7 credits | $7.00 | Dynamic pages extracted to JSON |
+| **Stealth Armor Bypass** | 15 credits | $15.00 | Cloudflare Turnstile, DataDome, Kasada |
+| **Stealth + Schema** | 17 credits | $17.00 | Heavy bot-defended e-commerce and directories |
+
+> **Datamint Zero-Waste Guarantee:** A blocked request that returns zero usable data costs 0 credits.
+
+---
+
+## Hosting as an SSE Service
+
+To deploy as a hosted Server-Sent Events (SSE) server (e.g. for `mcp.datamint.xyz` or inside Docker):
+
+```bash
+# Start SSE server on port 3001
+datamint-mcp --transport sse --port 3001 --host 0.0.0.0
+```
+
+Endpoints exposed:
+- `GET /sse`: SSE stream endpoint for clients to establish connection.
+- `POST /message`: Message ingress for JSON-RPC messages.
+- `GET /health`: Health check endpoint returning HTTP 200.
+
+### Docker Deployment
+
+```bash
+docker build -t datamint-mcp .
+docker run -d -p 3001:3001 -e DATAMINT_API_KEY=mint_live_xxx datamint-mcp
+```
+
+---
+
+## Development & Testing
+
+```bash
+# Install dependencies
+pnpm install
+
+# Compile TypeScript
+pnpm run build
+
+# Run unit and protocol tests
+pnpm test
+
+# Typecheck
+pnpm run typecheck
+```
+
+---
+
+## License
+
+MIT © [datamint.xyz](https://datamint.xyz)
