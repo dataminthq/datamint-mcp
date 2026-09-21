@@ -22,22 +22,82 @@ Connect any AI agent directly to Datamint's high-throughput web scraping and dat
 
 ---
 
-## Quickstart
+## Quickstart & Agent Integration
 
-### 1. Obtain an API Key
-Sign up at [datamint.xyz](https://datamint.xyz) and create an API key in your [Dashboard](https://datamint.xyz/dashboard/keys).
-- Production keys: `mint_live_...`
-- Sandbox keys: `mint_test_...` (metered for testing, never billed against live balance)
+You can use Datamint MCP in two ways:
+1. **Hosted Cloud Endpoint (Recommended)**: Connect directly to **`https://mcp.datamint.xyz/sse`** with zero local dependencies.
+2. **Local CLI / Stdio**: Run via `npx -y @datamint/mcp` locally on your machine.
 
-### 2. Configure Your AI Client
+---
 
-#### Claude Desktop
+### 1. Get Your Datamint API Key
+Sign up at [datamint.xyz](https://datamint.xyz) and create a key in the [Dashboard](https://datamint.xyz/dashboard/keys):
+- **Live key**: `mint_live_...` (production credits)
+- **Sandbox key**: `mint_test_...` (free testing, metered without deducting credits)
+
+---
+
+### 2. Integration Guides by Client
+
+#### 🎯 Cursor IDE
+
+Cursor supports native **SSE** remote MCP servers directly:
+
+1. Open **Settings** $\to$ **Features** $\to$ **MCP Servers** $\to$ **Add New MCP Server**
+2. Configure:
+   - **Name**: `datamint`
+   - **Type**: `SSE`
+   - **URL**: `https://mcp.datamint.xyz/sse`
+   - **Headers**:
+     ```json
+     {
+       "Authorization": "Bearer mint_live_YOUR_API_KEY"
+     }
+     ```
+
+Or paste into your project's `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "datamint": {
+      "url": "https://mcp.datamint.xyz/sse",
+      "headers": {
+        "Authorization": "Bearer mint_live_YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+---
+
+#### 🟣 Claude Desktop
 
 Add Datamint to your `claude_desktop_config.json`:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
+##### Option A: Hosted Endpoint via Stdio-to-SSE Bridge (No local build)
+```json
+{
+  "mcpServers": {
+    "datamint": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.datamint.xyz/sse",
+        "--header",
+        "Authorization: Bearer mint_live_YOUR_API_KEY"
+      ]
+    }
+  }
+}
+```
+
+##### Option B: Native Local Stdio
 ```json
 {
   "mcpServers": {
@@ -52,33 +112,152 @@ Add Datamint to your `claude_desktop_config.json`:
 }
 ```
 
-#### Cursor IDE
+---
 
-Add to your project's `.cursor/mcp.json` (or User Settings):
+#### 🌊 Windsurf IDE
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ```json
 {
   "mcpServers": {
     "datamint": {
-      "command": "npx",
-      "args": ["-y", "@datamint/mcp"],
-      "env": {
-        "DATAMINT_API_KEY": "mint_live_YOUR_API_KEY"
+      "serverUrl": "https://mcp.datamint.xyz/sse",
+      "headers": {
+        "Authorization": "Bearer mint_live_YOUR_API_KEY"
       }
     }
   }
 }
 ```
 
-#### Windsurf, Zed, Claude Code, Cline, Roo Code
+---
+
+#### ⚡ Claude Code (Terminal CLI)
+
+Run a single command in your terminal to enable Datamint web retrieval in Claude Code:
 
 ```bash
-# Running directly via npx:
-DATAMINT_API_KEY=mint_live_xxx npx -y @datamint/mcp
+claude mcp add --transport sse datamint https://mcp.datamint.xyz/sse --header "Authorization: Bearer mint_live_YOUR_API_KEY"
+```
 
-# Or installed globally:
-npm install -g @datamint/mcp
-datamint-mcp --api-key mint_live_xxx
+---
+
+#### 🛠️ Cline & Roo Code (VS Code Extension)
+
+In Cline Settings $\to$ **MCP Servers** $\to$ **Add Remote MCP Server**:
+- **Name**: `datamint`
+- **Transport**: `SSE`
+- **Server URL**: `https://mcp.datamint.xyz/sse`
+- **Headers**:
+  ```json
+  {
+    "Authorization": "Bearer mint_live_YOUR_API_KEY"
+  }
+  ```
+
+---
+
+#### 📝 Zed Editor
+
+Add to `~/.config/zed/settings.json`:
+
+```json
+{
+  "context_servers": {
+    "datamint": {
+      "endpoint": "https://mcp.datamint.xyz/sse",
+      "headers": {
+        "Authorization": "Bearer mint_live_YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+---
+
+#### 🐍 Python AI Agents (LangChain, LangGraph, LlamaIndex, CrewAI)
+
+Connect any Python agent to `mcp.datamint.xyz` using the official `mcp` library:
+
+```bash
+pip install mcp
+```
+
+```python
+import asyncio
+from mcp import ClientSession
+from mcp.client.sse import sse_client
+
+DATAMINT_API_KEY = "mint_live_YOUR_API_KEY"
+HEADERS = {"Authorization": f"Bearer {DATAMINT_API_KEY}"}
+
+async def run_agent():
+    # Connect directly to the hosted Datamint SSE endpoint
+    async with sse_client("https://mcp.datamint.xyz/sse", headers=HEADERS) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            # 1. Single-page extraction into LLM Markdown
+            mint_result = await session.call_tool("datamint_mint", {
+                "url": "https://news.ycombinator.com",
+                "js": False
+            })
+            print("Extracted Markdown:\n", mint_result.content[0].text)
+
+            # 2. Zero-code schema extraction into typed JSON
+            extract_result = await session.call_tool("datamint_extract", {
+                "url": "https://example.com/product/123",
+                "schema": "ecommerce_item",
+                "stealth": True
+            })
+            print("Extracted Product Data:\n", extract_result.content[0].text)
+
+if __name__ == "__main__":
+    asyncio.run(run_agent())
+```
+
+---
+
+#### 🟨 Node.js / TypeScript AI Agents (LangChain.js, Vercel AI SDK)
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+
+const API_KEY = "mint_live_YOUR_API_KEY";
+
+const transport = new SSEClientTransport(
+  new URL("https://mcp.datamint.xyz/sse"),
+  {
+    eventSourceInit: {
+      headers: { Authorization: `Bearer ${API_KEY}` },
+    },
+    requestInit: {
+      headers: { Authorization: `Bearer ${API_KEY}` },
+    },
+  }
+);
+
+const client = new Client(
+  { name: "my-ai-agent", version: "1.0.0" },
+  { capabilities: {} }
+);
+
+await client.connect(transport);
+
+// Call datamint_mint
+const result = await client.callTool({
+  name: "datamint_mint",
+  arguments: {
+    url: "https://example.com/item/1",
+    js: true,
+    stealth: true,
+  },
+});
+
+console.log(result.content[0].text);
 ```
 
 ---
