@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://datamint.xyz">
+    <img src="assets/logo.png" alt="datamint logo" width="380" />
+  </a>
+</p>
+
 # @datamint/mcp — Official Datamint Model Context Protocol Server
 
 [![npm version](https://img.shields.io/npm/v/@datamint/mcp.svg)](https://www.npmjs.com/package/@datamint/mcp)
