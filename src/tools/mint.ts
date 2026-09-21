@@ -58,12 +58,17 @@ export function registerMintTool(server: McpServer, client: DatamintClient): voi
           .boolean()
           .optional()
           .describe("Bypass response cache and force fresh extraction from the target server."),
+        api_key: z
+          .string()
+          .optional()
+          .describe("Optional Datamint API key (mint_live_... or mint_test_...). Overrides default server key."),
       },
     },
     async (args) => {
       try {
         const result = await client.mint({
           url: args.url,
+          api_key: args.api_key,
           js: args.js,
           stealth: args.stealth,
           schema: args.schema,

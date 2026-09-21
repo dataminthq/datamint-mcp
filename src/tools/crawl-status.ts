@@ -29,11 +29,15 @@ export function registerCrawlStatusTool(server: McpServer, client: DatamintClien
           .max(100)
           .optional()
           .describe("Maximum number of completed pages to include in the output. Default: 20."),
+        api_key: z
+          .string()
+          .optional()
+          .describe("Optional Datamint API key (mint_live_... or mint_test_...). Overrides default server key."),
       },
     },
     async (args) => {
       try {
-        const result = await client.getCrawlStatus(args.job_id);
+        const result = await client.getCrawlStatus(args.job_id, args.api_key);
 
         let report = [
           `### Crawl Job Status: ${result.status.toUpperCase()}`,

@@ -28,6 +28,7 @@ export interface MintEvidence {
 
 export interface MintRequest {
   url: string;
+  api_key?: string;
   js?: boolean;
   stealth?: boolean;
   schema?: string | Record<string, unknown>;
@@ -53,6 +54,7 @@ export interface MintResponse {
 export interface ExtractRequest {
   url: string;
   schema: string | Record<string, unknown>;
+  api_key?: string;
   js?: boolean;
   stealth?: boolean;
   wait_for_selector?: string;
@@ -83,6 +85,7 @@ export interface ExtractResponse {
 
 export interface CrawlRequest {
   url: string;
+  api_key?: string;
   max_depth?: number; // 0 to 10
   max_pages?: number; // 1 to 1000
   path_include?: string; // regex

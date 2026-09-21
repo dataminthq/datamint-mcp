@@ -43,6 +43,10 @@ export function registerExtractTool(server: McpServer, client: DatamintClient): 
           .boolean()
           .optional()
           .describe("Bypass response cache and force fresh extraction."),
+        api_key: z
+          .string()
+          .optional()
+          .describe("Optional Datamint API key (mint_live_... or mint_test_...). Overrides default server key."),
       },
     },
     async (args) => {
@@ -50,6 +54,7 @@ export function registerExtractTool(server: McpServer, client: DatamintClient): 
         const result = await client.extract({
           url: args.url,
           schema: args.schema,
+          api_key: args.api_key,
           js: args.js,
           stealth: args.stealth,
           wait_for_selector: args.wait_for_selector,

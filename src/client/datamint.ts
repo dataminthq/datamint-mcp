@@ -37,9 +37,10 @@ export class DatamintClient {
       method?: "GET" | "POST";
       body?: unknown;
       retries?: number;
+      apiKey?: string;
     } = {},
   ): Promise<T> {
-    const { method = "GET", body, retries = 2 } = options;
+    const { method = "GET", body, retries = 2, apiKey } = options;
     const url = `${this.baseUrl}${endpoint}`;
 
     const headers: Record<string, string> = {
@@ -47,8 +48,9 @@ export class DatamintClient {
       "User-Agent": "datamint-mcp/0.1.0",
     };
 
-    if (this.apiKey) {
-      headers["Authorization"] = `Bearer ${this.apiKey}`;
+    const effectiveKey = (apiKey || this.apiKey)?.trim();
+    if (effectiveKey) {
+      headers["Authorization"] = `Bearer ${effectiveKey}`;
     }
 
     if (body !== undefined) {
@@ -144,6 +146,7 @@ export class DatamintClient {
     return this.request<MintResponse>("/v1/mint", {
       method: "POST",
       body: request,
+      apiKey: request.api_key,
     });
   }
 
@@ -154,6 +157,7 @@ export class DatamintClient {
     return this.request<ExtractResponse>("/v1/extract", {
       method: "POST",
       body: request,
+      apiKey: request.api_key,
     });
   }
 
@@ -164,15 +168,17 @@ export class DatamintClient {
     return this.request<CrawlResponse>("/v1/crawl", {
       method: "POST",
       body: request,
+      apiKey: request.api_key,
     });
   }
 
   /**
    * Poll status and retrieve extracted pages for an active or completed crawl job.
    */
-  public async getCrawlStatus(jobId: string): Promise<CrawlStatusResponse> {
+  public async getCrawlStatus(jobId: string, apiKey?: string): Promise<CrawlStatusResponse> {
     return this.request<CrawlStatusResponse>(`/v1/crawl/${encodeURIComponent(jobId)}`, {
       method: "GET",
+      apiKey,
     });
   }
 

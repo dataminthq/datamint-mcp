@@ -60,12 +60,17 @@ export function registerCrawlTool(server: McpServer, client: DatamintClient): vo
           .describe(
             "Optional HTTPS webhook endpoint to receive an automated notification when the crawl finishes.",
           ),
+        api_key: z
+          .string()
+          .optional()
+          .describe("Optional Datamint API key (mint_live_... or mint_test_...). Overrides default server key."),
       },
     },
     async (args) => {
       try {
         const result = await client.crawl({
           url: args.url,
+          api_key: args.api_key,
           max_depth: args.max_depth,
           max_pages: args.max_pages,
           path_include: args.path_include,
