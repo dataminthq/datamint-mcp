@@ -41,6 +41,17 @@
   ],
   "author": "datamint.xyz",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dataminthq/datamint-mcp.git"
+  },
+  "homepage": "https://datamint.xyz/docs/mcp",
+  "bugs": {
+    "url": "https://github.com/dataminthq/datamint-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "dotenv": "^16.4.7",
