@@ -1,8 +1,7 @@
-import http from "node:http";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { resolveConfig, looksLikeApiKey } from "./config.js";
 import { createDatamintMcpServer } from "./server.js";
+import { createSseHttpServer } from "./sse.js";
 
 async function main(): Promise<void> {
   const config = resolveConfig();
@@ -21,9 +20,8 @@ async function main(): Promise<void> {
     );
   }
 
-  const { server } = createDatamintMcpServer(config);
-
   if (config.transport === "stdio") {
+    const { server } = createDatamintMcpServer(config);
     const transport = new StdioServerTransport();
     console.error(
       `[datamint-mcp] Starting Datamint MCP server via stdio transport (API: ${config.baseUrl})`,
@@ -40,48 +38,8 @@ async function main(): Promise<void> {
     process.on("SIGINT", shutdown);
     process.on("SIGTERM", shutdown);
   } else {
-    // SSE HTTP Server mode
-    let transport: SSEServerTransport | null = null;
-
-    const httpServer = http.createServer(async (req, res) => {
-      const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-
-      // Enable CORS for web agent clients
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-      if (req.method === "OPTIONS") {
-        res.writeHead(204);
-        res.end();
-        return;
-      }
-
-      if (req.method === "GET" && url.pathname === "/health") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ status: "ok", service: "datamint-mcp", version: "0.1.0" }));
-        return;
-      }
-
-      if (req.method === "GET" && url.pathname === "/sse") {
-        transport = new SSEServerTransport("/message", res);
-        await server.connect(transport);
-        return;
-      }
-
-      if (req.method === "POST" && url.pathname === "/message") {
-        if (!transport) {
-          res.writeHead(400, { "Content-Type": "text/plain" });
-          res.end("No active SSE session found. Connect to /sse first.");
-          return;
-        }
-        await transport.handlePostMessage(req, res);
-        return;
-      }
-
-      res.writeHead(404, { "Content-Type": "text/plain" });
-      res.end("Not Found. Available endpoints: GET /sse, POST /message, GET /health");
-    });
+    // SSE HTTP Server mode: one McpServer per connected client
+    const { httpServer, closeAllSessions } = createSseHttpServer(config);
 
     httpServer.listen(config.port, config.host, () => {
       console.error(
@@ -92,7 +50,7 @@ async function main(): Promise<void> {
     const shutdown = async (): Promise<void> => {
       console.error("[datamint-mcp] Shutting down SSE server...");
       httpServer.close();
-      await server.close();
+      await closeAllSessions();
       process.exit(0);
     };
 
